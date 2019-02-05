@@ -1,0 +1,10 @@
+version: '2'
+
+services:
+  apps:
+    build:
+      context:  ../
+      dockerfile: Dockerfile
+    expose:
+      - "8081"
+

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -24,6 +25,7 @@ import java.util.List;
 @RestController
 public class DemoAppAPIController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private String appID = null;
 
     @RequestMapping("/demo/hello")
     public String index() {
@@ -51,8 +53,8 @@ public class DemoAppAPIController {
         interceptors.add(new LoggingRequestInterceptor());
         restTemplate.setInterceptors(interceptors);
 
-        //final String baseUrl = "http://approuter_discovery_1:8500/v1/agent/service/register";
-        final String baseUrl = "http://localhost:8500/v1/agent/service/register";
+        final String baseUrl = "http://approuter_discovery_1:8500/v1/agent/service/register";
+        //final String baseUrl = "http://localhost:8500/v1/agent/service/register";
         URI uri = null;
         try {
             uri = new URI(baseUrl);
@@ -64,8 +66,10 @@ public class DemoAppAPIController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        appID = "demoApp_"  + ip.getHostAddress();
+
         String jsonString = "{\n" +
-                "  \"ID\": \"demo\",\n" +
+                "  \"ID\": \"" + appID + "\",\n" +
                 "  \"Name\": \"demo\",\n" +
                 "  \"Tags\": [\n" +
                 "    \"primary\",\n" +
@@ -81,7 +85,35 @@ public class DemoAppAPIController {
 
         HttpEntity<String> request = new HttpEntity<String>(jsonString, headers);
 
-        ResponseEntity<String> result = restTemplate.postForEntity(uri, request, String.class);
+        //ResponseEntity<String> result = restTemplate.postForEntity(uri, request, String.class);
+        restTemplate.put(uri, request);
+    }
+
+    @PreDestroy
+    public void deregisterConsul(){
+
+        RestTemplate restTemplate =  new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
+        interceptors.add(new LoggingRequestInterceptor());
+        restTemplate.setInterceptors(interceptors);
+
+        final String baseUrl = "http://approuter_discovery_1:8500/v1/agent/service/deregister/" + appID;
+        //final String baseUrl = "http://localhost:8500/v1/agent/service/deregister/" + appID;
+        URI uri = null;
+        try {
+            uri = new URI(baseUrl);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+
+        HttpEntity<String> request = new HttpEntity<String>("", headers);
+
+        restTemplate.put(uri, request);
     }
 
 }
